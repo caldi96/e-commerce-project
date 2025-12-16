@@ -1,6 +1,7 @@
 package io.hhplus.ECommerce.ECommerce_project.common.config;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -8,8 +9,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +29,12 @@ public class KafkaConsumerConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    public KafkaConsumerConfig(KafkaTemplate<String, Object> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     /**
      * 공통 Consumer 설정
@@ -52,7 +63,8 @@ public class KafkaConsumerConfig {
     }
 
     /**
-     * 수동 커밋 Listener Container Factory
+     * 수동 커밋 Listener Container Factory (DLQ 포함)
+     * - 3회 재시도 후 DLQ로 이동
      * - AckMode.MANUAL: 리스너에서 Acknowledgment.acknowledge() 호출 시 커밋
      */
     @Bean
@@ -64,6 +76,10 @@ public class KafkaConsumerConfig {
         factory.setConsumerFactory(manualCommitConsumerFactory());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
         factory.setConcurrency(3);
+
+        // DLQ 설정 : 3회 재시도 후 실패하면 DLQ로 전송
+        factory.setCommonErrorHandler(createErrorHandler(3, 2000L));
+
         return factory;
     }
 
@@ -84,16 +100,49 @@ public class KafkaConsumerConfig {
     }
 
     /**
-     * 자동 커밋 Listener Container Factory
+     * 자동 커밋 Listener Container Factory (DLQ 포함)
+     * - 3회 재시도 후 DLQ 이동
      * - AckMode.BATCH: 배치 단위로 자동 커밋 (성능 최적화)
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> autoCommitKafkaListerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, Object> autoCommitKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(autoCommitConsumerFactory());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
         factory.setConcurrency(3);
+
+        // DLQ 설정: 3회 재시도 후 실패하면 DLQ로 전송
+        factory.setCommonErrorHandler(createErrorHandler(3, 1000L));
+
         return factory;
+    }
+
+    /**
+     * DLQ 에러 핸들러 생성
+     * @param maxAttempts 최대 재시도 횟수
+     * @param backOffInterval 재시도 간격 (ms)
+     */
+    private DefaultErrorHandler createErrorHandler(int maxAttempts, long backOffInterval) {
+        // DLQ 발행: 원본 토픽명 + ".DLT" (Dead Letter Topic)
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+                kafkaTemplate,
+                (record, ex) -> {
+                    // DLQ 토픽명: 원본토픽.DLT
+                    String dlqTopic = record.topic() + ".DLT";
+                    return new TopicPartition(dlqTopic, record.partition());
+                }
+        );
+
+        // 재시도 정책: maxAttempts회 재시도, backOffInterval 간격
+        DefaultErrorHandler defaultErrorHandler = new DefaultErrorHandler(
+                recoverer,
+                new FixedBackOff(backOffInterval, maxAttempts - 1)  // maxAttempts: 첫 시도 제외
+        );
+
+        // 재시도하지 않을 예외 타입 (즉시 DLQ로 전송)
+        // errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+
+        return defaultErrorHandler;
     }
 }

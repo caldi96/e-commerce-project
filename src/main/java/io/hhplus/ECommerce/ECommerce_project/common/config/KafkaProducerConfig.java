@@ -1,4 +1,4 @@
-package io.hhplus.ECommerce.ECommerce_project.common.config.cache;
+package io.hhplus.ECommerce.ECommerce_project.common.config;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -30,6 +30,7 @@ public class KafkaProducerConfig {
         config.put(ProducerConfig.ACKS_CONFIG, "all");  // 모든 replica 확인
         config.put(ProducerConfig.RETRIES_CONFIG, 3);   // 재시도 3번
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // 중복 방지
+        config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
 
         return new DefaultKafkaProducerFactory<>(config);
     }

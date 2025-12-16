@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * 결제 이벤트를 Kafka로 발행하는 Producer
+ * - 실패 시 자동으로 재시도 (ProducerConfig.RETRIES_CONFIG)
  */
 @Slf4j
 @Component
@@ -24,7 +25,8 @@ public class PaymentKafkaProducer {
     private static final String PAYMENT_FAILED_TOPIC = "payment-failed";
 
     /**
-     * 결제 완료 이벤트 발행
+     * 결제 완료 이벤트 발행 (비동기)
+     * - Producer 레벨에서 자동 재시도 (최대 3회)
      */
     public void sendPaymentCompleted(PaymentCompletedEvent event) {
         String key = String.valueOf(event.orderId());
@@ -42,13 +44,15 @@ public class PaymentKafkaProducer {
             } else {
                 log.error("결제 완료 이벤트 발행 실패: orderId={}, error={}",
                         event.orderId(), ex.getMessage(), ex);
-                // TODO: 실패 처리 로직 (재시도, DLQ 등)
+                // Producer 재시도 실패 시 로그만 남김
+                // Consumer 측에서 DLQ 처리
             }
         });
     }
 
     /**
      * 결제 실패 이벤트 발행
+     * - Producer 레벨에서 자동 재시도 (최대 3회)
      */
     public void sendPaymentFailed(PaymentFailedEvent event) {
         String key = String.valueOf(event.orderId());
@@ -66,7 +70,8 @@ public class PaymentKafkaProducer {
             } else {
                 log.error("결제 실패 이벤트 발행 실패: orderId={}, error={}",
                         event.orderId(), ex.getMessage(), ex);
-                // TODO: 실패 처리 로직 (재시도, DLQ 등)
+                // Producer 재시도 실패 시 로그만 남김
+                // Consumer 측에서 DLQ 처리
             }
         });
     }

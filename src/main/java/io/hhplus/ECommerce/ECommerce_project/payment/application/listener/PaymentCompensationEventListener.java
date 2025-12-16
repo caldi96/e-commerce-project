@@ -43,39 +43,33 @@ public class PaymentCompensationEventListener {
     @KafkaListener(
             topics = "payment-failed",
             groupId = "payment-compensation-group",
-            containerFactory = "autoCommitKafkaListerContainerFactory" // 수동 커밋
+            containerFactory = "manualCommitKafkaListenerContainerFactory" // 수동 커밋
     )
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handlePaymentFailed(PaymentFailedEvent event, Acknowledgment ack) {
         log.info("Kafka 결제 실패 이벤트 수신: orderId={}, userId={}, reason={}",
                 event.orderId(), event.userId(), event.failureReason());
 
-        try {
-            // 주문 조회
-            Orders order = orderFinderService.getOrder(event.orderId());
+        // 주문 조회
+        Orders order = orderFinderService.getOrder(event.orderId());
 
-            // 1. 재고 복구
-            compensateStock(order);
+        // 1. 재고 복구
+        compensateStock(order);
 
-            // 2. 쿠폰 복구
-            compensateCoupon(order);
+        // 2. 쿠폰 복구
+        compensateCoupon(order);
 
-            // 3. 포인트 복구
-            compensatePoint(order);
+        // 3. 포인트 복구
+        compensatePoint(order);
 
-            log.info("결제 실패 보상 트랜잭션 완료: orderId={}", event.orderId());
+        log.info("결제 실패 보상 트랜잭션 완료: orderId={}", event.orderId());
 
-            // 성공 시 수동 커밋
-            ack.acknowledge();
+        // 성공 시 수동 커밋
+        ack.acknowledge();
 
-        } catch (Exception e) {
-            log.error("결제 실패 보상 트랜잭션 실패: orderId={}, error={}",
-                    event.orderId(), e.getMessage(), e);
+        // 예외 발생 시 DefaultErrorHandler가 자동으로 재시도하고,
+        // 3회 재시도 후에도 실패하면 payment-failed.DLT로 전송됨
 
-            // 수동 커밋하지 않음 -> 재처리됨
-            // TODO: 재시도 횟수 제한 후 DLQ로 이동
-            throw e;
-        }
     }
 
     /**

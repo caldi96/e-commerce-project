@@ -35,7 +35,7 @@ public class ProductRankingEventListener {
     @KafkaListener(
             topics = "payment-completed",
             groupId = "product-ranking-group",
-            containerFactory = "autoCommitKafkaListerContainerFactory"  // 자동 커밋
+            containerFactory = "autoCommitKafkaListenerContainerFactory"  // 자동 커밋
     )
     @Retryable(
             retryFor = Exception.class,

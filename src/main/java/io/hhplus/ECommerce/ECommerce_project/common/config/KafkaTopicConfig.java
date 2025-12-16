@@ -55,6 +55,32 @@ public class KafkaTopicConfig {
                 .build();
     }
 
+    // ========== DLQ 토픽들 ==========
+
+    /**
+     * 결제 완료 이벤트 DLQ
+     */
+    @Bean
+    public NewTopic paymentCompletedDlqTopic() {
+        return TopicBuilder.name("payment-completed.DLT")
+                .partitions(DEFAULT_PARTITIONS)
+                .replicas(DEFAULT_REPLICAS)
+                .config("min.insync.replicas", MIN_IN_SYNC_REPLICAS)
+                .build();
+    }
+
+    /**
+     * 결제 실패 이벤트 DLQ
+     */
+    @Bean
+    public NewTopic paymentFailedDlqTopic() {
+        return TopicBuilder.name("payment-failed.DLT")
+                .partitions(DEFAULT_PARTITIONS)
+                .replicas(DEFAULT_REPLICAS)
+                .config("min.insync.replicas", MIN_IN_SYNC_REPLICAS)
+                .build();
+    }
+
     /**
      * 재고 감소 이벤트 토픽
      * 재고가 감소하면 이 토픽으로 이벤트가 발행됩니다.
