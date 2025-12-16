@@ -5,6 +5,7 @@ import io.hhplus.ECommerce.ECommerce_project.product.application.service.RedisRa
 import io.hhplus.ECommerce.ECommerce_project.product.domain.event.ProductViewedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -15,7 +16,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * 상품 랭킹 이벤트 리스너
- * - 결제 완료 후 Redis 랭킹 업데이트를 비동기로 처리
+ * - Kafka로부터 결제 완료 이벤트를 수신하여 Redis 랭킹 업데이트
  * - Eventual Consistency 패턴 적용
  * - 실패 시 재시도 로직 적용 (최대 3회)
  */
@@ -27,13 +28,15 @@ public class ProductRankingEventListener {
     private final RedisRankingService redisRankingService;
 
     /**
-     * 결제 완료 이벤트 처리
-     * - 트랜잭션 커밋 후 Redis 랭킹 업데이트
-     * - 비동기로 처리되어 결제 응답 속도에 영향 없음
+     * Kafka로부터 결제 완료 이벤트 수신
+     * - Redis 랭킹 업데이트
      * - 실패 시 최대 3회 재시도 (1초 간격)
      */
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @KafkaListener(
+            topics = "payment-completed",
+            groupId = "product-ranking-group",
+            containerFactory = "autoCommitKafkaListerContainerFactory"  // 자동 커밋
+    )
     @Retryable(
             retryFor = Exception.class,
             maxAttempts = 3,
@@ -42,17 +45,23 @@ public class ProductRankingEventListener {
     public void handlePaymentCompleted(PaymentCompletedEvent event) {
         log.info("결제 완료 이벤트 수신 - orderId: {}", event.orderId());
 
-        event.orderItems().forEach(orderItemInfo -> {
-            redisRankingService.incrementSoldCount(
-                    orderItemInfo.productId(),
-                    orderItemInfo.quantity()
-            );
-            log.debug("Redis 랭킹 업데이트 완료 - productId: {}, quantity: {}",
-                    orderItemInfo.productId(), orderItemInfo.quantity());
-        });
+        try {
+            event.orderItems().forEach(orderItemInfo -> {
+                redisRankingService.incrementSoldCount(
+                        orderItemInfo.productId(),
+                        orderItemInfo.quantity()
+                );
+                log.debug("Redis 랭킹 업데이트 완료 - productId: {}, quantity: {}",
+                        orderItemInfo.productId(), orderItemInfo.quantity());
+            });
 
-        log.info("결제 완료 이벤트 처리 완료 - orderId: {}, itemCount: {}",
-                event.orderId(), event.orderItems().size());
+            log.info("결제 완료 이벤트 처리 완료 - orderId: {}, itemCount: {}",
+                    event.orderId(), event.orderItems().size());
+        } catch (Exception e) {
+            log.error("결제 완료 이벤트 처리 실패 - orderId: {}", event.orderId(), e);
+            // 자동 커밋이므로 예외 발생 시 재시도 로직에 의존
+            throw e;
+        }
     }
 
     /**

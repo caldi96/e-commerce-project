@@ -43,6 +43,19 @@ public class KafkaTopicConfig {
     }
 
     /**
+     * 결제 실패 이벤트 토픽
+     * 결제가 실패하면 이 토픽으로 이벤트가 발행됩니다.
+     */
+    @Bean
+    public NewTopic paymentFailedTopic() {
+        return TopicBuilder.name("payment-failed")
+                .partitions(DEFAULT_PARTITIONS)
+                .replicas(DEFAULT_REPLICAS)
+                .config("min.insync.replicas", MIN_IN_SYNC_REPLICAS)
+                .build();
+    }
+
+    /**
      * 재고 감소 이벤트 토픽
      * 재고가 감소하면 이 토픽으로 이벤트가 발행됩니다.
      */
