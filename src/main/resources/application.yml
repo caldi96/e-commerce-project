@@ -48,11 +48,11 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       group-id: ecommerce-consumer-group
       auto-offset-reset: earliest  # 처음부터 읽기 (latest: 최신부터)
-      enable-auto-commit: false  # 수동 커밋으로 메시지 처리 보장
+#      enable-auto-commit: false  # 수동 커밋으로 메시지 처리 보장 (Factory에서 개별 설정)
       properties:
         spring.json.trusted.packages: "*"  # JSON 역직렬화 허용 패키지
-    listener:
-      ack-mode: manual  # 수동 acknowledge (메시지 처리 완료 후 커밋)
+#    listener:
+#      ack-mode: manual  # 수동 acknowledge (메시지 처리 완료 후 커밋) (Factory에서 개별 설정)
 
 server:
   port: 8083
