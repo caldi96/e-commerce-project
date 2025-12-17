@@ -2,10 +2,10 @@ package io.hhplus.ECommerce.ECommerce_project.order.application;
 
 import io.hhplus.ECommerce.ECommerce_project.order.application.command.CreateOrderFromProductCommand;
 import io.hhplus.ECommerce.ECommerce_project.order.domain.event.OrderFromProductValidationRequestedEvent;
+import io.hhplus.ECommerce.ECommerce_project.order.infrastructure.kafka.OrderKafkaProducer;
 import io.hhplus.ECommerce.ECommerce_project.order.presentation.response.CreateOrderResponse;
 import io.hhplus.ECommerce.ECommerce_project.product.application.service.RedisStockService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 public class CreateOrderFromProductUseCase {
 
     private final RedisStockService redisStockService;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final OrderKafkaProducer orderKafkaProducer;
 
     public CreateOrderResponse execute(CreateOrderFromProductCommand command) {
 
@@ -26,8 +26,8 @@ public class CreateOrderFromProductUseCase {
             // 1. Redis 재고 차감 (동기)
             redisStockService.decreaseStock(command.productId(), command.quantity());
 
-            // 2. 검증 및 계산 이벤트 발행 (비동기)
-            applicationEventPublisher.publishEvent(
+            // 2. Kafka로 검증 이벤트 발행 (비동기)
+            orderKafkaProducer.sendOrderValidationRequested(
                     OrderFromProductValidationRequestedEvent.of(command)
             );
 

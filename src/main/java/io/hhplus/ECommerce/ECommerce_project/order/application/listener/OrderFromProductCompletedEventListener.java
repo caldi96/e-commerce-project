@@ -14,7 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - 현재는 로그만 출력, 추후 WebSocket/SSE/푸시 알림 추가 예정
  */
 @Slf4j
-@Component
+//@Component // 스프링 이벤트를 kafka 이벤트로 변경
 @RequiredArgsConstructor
 public class OrderFromProductCompletedEventListener {
 
