@@ -24,7 +24,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - 실패 시 보상 이벤트 발행 (Redis 롤백)
  */
 @Slf4j
-@Component
+//@Component 스프링 이벤트를 카프카에서 처리
 @RequiredArgsConstructor
 public class CouponIssuedEventListener {
 

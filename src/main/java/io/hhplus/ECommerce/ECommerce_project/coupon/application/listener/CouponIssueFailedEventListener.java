@@ -14,7 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - DB 저장 실패 시 Redis 롤백 처리
  */
 @Slf4j
-@Component
+//@Component 스프링 이벤트가 아닌 kafka 이벤트에서 수행함
 @RequiredArgsConstructor
 public class CouponIssueFailedEventListener {
 

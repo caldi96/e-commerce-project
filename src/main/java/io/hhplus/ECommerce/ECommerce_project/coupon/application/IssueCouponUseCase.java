@@ -9,6 +9,7 @@ import io.hhplus.ECommerce.ECommerce_project.coupon.application.service.RedisCou
 import io.hhplus.ECommerce.ECommerce_project.coupon.domain.entity.Coupon;
 import io.hhplus.ECommerce.ECommerce_project.coupon.domain.event.CouponIssuedEvent;
 import io.hhplus.ECommerce.ECommerce_project.coupon.domain.service.CouponDomainService;
+import io.hhplus.ECommerce.ECommerce_project.coupon.infrastructure.kafka.CouponKafkaProducer;
 import io.hhplus.ECommerce.ECommerce_project.user.domain.service.UserDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,13 +26,13 @@ public class IssueCouponUseCase {
     private final CouponFinderService couponFinderService;
     private final RedisCouponService redisCouponService;
     private final RedisCouponMetadataService redisCouponMetadataService;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final CouponKafkaProducer couponKafkaProducer;
 
     /**
-     * Redis Lua Script + 비동기 이벤트 발행
+     * Redis Lua Script + Kafka 이벤트 발행
      * - Lua Script가 원자성 보장 (분산 락 불필요)
      * - Redis 발급 성공 후 즉시 반환
-     * - DB 저장은 비동기 이벤트로 처리
+     * - DB 저장은 Kafka 이벤트로 처리
      */
     public void execute(IssueCouponCommand command) {
 
@@ -52,8 +53,8 @@ public class IssueCouponUseCase {
             throw new CouponException(ErrorCode.COUPON_ALL_ISSUED);
         }
 
-        // 3. 비동기 이벤트 발행 (DB 저장은 리스너에서 처리)
-        applicationEventPublisher.publishEvent(
+        // 3. Kafka 이벤트 발행 (DB 저장은 Consumer에서 처리)
+        couponKafkaProducer.sendCouponIssued(
                 CouponIssuedEvent.of(command.userId(), command.couponId())
         );
 
