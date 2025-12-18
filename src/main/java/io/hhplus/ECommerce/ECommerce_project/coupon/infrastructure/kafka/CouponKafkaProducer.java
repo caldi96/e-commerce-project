@@ -31,23 +31,7 @@ public class CouponKafkaProducer {
      */
     public void sendCouponIssued(CouponIssuedEvent event) {
         String key = String.valueOf(event.couponId());
-
-        CompletableFuture<SendResult<String, Object>> future =
-                kafkaTemplate.send(COUPON_ISSUED_TOPIC, key, event);
-
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                log.info("쿠폰 발급 이벤트 발행 성공: topic={}, partition={}, offset={}, userId={}, couponId={}",
-                        COUPON_ISSUED_TOPIC,
-                        result.getRecordMetadata().partition(),
-                        result.getRecordMetadata().offset(),
-                        event.userId(),
-                        event.couponId());
-            } else {
-                log.error("쿠폰 발급 이벤트 발행 실패: userId={}, couponId={}, error={}",
-                        event.userId(), event.couponId(), ex.getMessage(), ex);
-            }
-        });
+        send(COUPON_ISSUED_TOPIC, key, event, "쿠폰 발급");
     }
 
     /**
@@ -55,22 +39,7 @@ public class CouponKafkaProducer {
      */
     public void sendCouponQuantityIncrease(CouponQuantityIncreaseEvent event) {
         String key = String.valueOf(event.couponId());
-
-        CompletableFuture<SendResult<String, Object>> future =
-                kafkaTemplate.send(COUPON_QUANTITY_INCREASE_TOPIC, key, event);
-
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                log.info("쿠폰 수량 증가 이벤트 발행 성공: topic={}, partition={}, offset={}, couponId={}",
-                        COUPON_QUANTITY_INCREASE_TOPIC,
-                        result.getRecordMetadata().partition(),
-                        result.getRecordMetadata().offset(),
-                        event.couponId());
-            } else {
-                log.error("쿠폰 수량 증가 이벤트 발행 실패: couponId={}, error={}",
-                        event.couponId(), ex.getMessage(), ex);
-            }
-        });
+        send(COUPON_QUANTITY_INCREASE_TOPIC, key, event, "쿠폰 수량 증가");
     }
 
     /**
@@ -78,23 +47,7 @@ public class CouponKafkaProducer {
      */
     public void sendCouponIssueFailed(CouponIssueFailedEvent event) {
         String key = String.valueOf(event.couponId());
-
-        CompletableFuture<SendResult<String, Object>> future =
-                kafkaTemplate.send(COUPON_ISSUE_FAILED_TOPIC, key, event);
-
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                log.info("쿠폰 발급 실패 이벤트 발행 성공: topic={}, partition={}, offset={}, userId={}, couponId={}",
-                        COUPON_ISSUE_FAILED_TOPIC,
-                        result.getRecordMetadata().partition(),
-                        result.getRecordMetadata().offset(),
-                        event.userId(),
-                        event.couponId());
-            } else {
-                log.error("쿠폰 발급 실패 이벤트 발행 실패: userId={}, couponId={}, error={}",
-                        event.userId(), event.couponId(), ex.getMessage(), ex);
-            }
-        });
+        send(COUPON_ISSUE_FAILED_TOPIC, key, event, "쿠폰 발급 실패");
     }
 
     // ------------ 공동 전송 로직 -------------
