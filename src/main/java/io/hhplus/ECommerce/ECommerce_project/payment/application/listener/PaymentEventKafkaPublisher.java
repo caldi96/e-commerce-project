@@ -14,8 +14,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - 트랜잭션 커밋 후 Kafka로 이벤트 발행
  */
 @Slf4j
-@Component
+//@Component // 비활성화
 @RequiredArgsConstructor
+@Deprecated
 public class PaymentEventKafkaPublisher {
 
     private final PaymentKafkaProducer paymentKafkaProducer;

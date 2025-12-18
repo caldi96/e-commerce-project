@@ -59,7 +59,7 @@ public class ProductRankingEventListener {
                     event.orderId(), event.orderItems().size());
         } catch (Exception e) {
             log.error("결제 완료 이벤트 처리 실패 - orderId: {}", event.orderId(), e);
-            // 자동 커밋이므로 예외 발생 시 재시도 로직에 의존
+            // 재시도 3회 후 DLQ로 전송
             throw e;
         }
     }
