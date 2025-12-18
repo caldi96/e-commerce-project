@@ -30,24 +30,7 @@ public class PaymentKafkaProducer {
      */
     public void sendPaymentCompleted(PaymentCompletedEvent event) {
         String key = String.valueOf(event.orderId());
-
-        CompletableFuture<SendResult<String, Object>> future =
-                kafkaTemplate.send(PAYMENT_COMPLETED_TOPIC, key, event);
-
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                log.info("결제 완료 이벤트 발행 성공: topic={}, partition={}, offset={}, orderId={}",
-                        PAYMENT_COMPLETED_TOPIC,
-                        result.getRecordMetadata().partition(),
-                        result.getRecordMetadata().offset(),
-                        event.orderId());
-            } else {
-                log.error("결제 완료 이벤트 발행 실패: orderId={}, error={}",
-                        event.orderId(), ex.getMessage(), ex);
-                // Producer 재시도 실패 시 로그만 남김
-                // Consumer 측에서 DLQ 처리
-            }
-        });
+        send(PAYMENT_COMPLETED_TOPIC, key, event, "결제 완료");
     }
 
     /**
@@ -56,22 +39,27 @@ public class PaymentKafkaProducer {
      */
     public void sendPaymentFailed(PaymentFailedEvent event) {
         String key = String.valueOf(event.orderId());
+        send(PAYMENT_FAILED_TOPIC, key, event, "결제 실패");
+    }
 
+    // ------------ 공동 전송 로직 -------------
+    /**
+     * 공통 전송 로직
+     */
+    private void send(String topic, String key, Object event, String eventName) {
         CompletableFuture<SendResult<String, Object>> future =
-                kafkaTemplate.send(PAYMENT_FAILED_TOPIC, key, event);
+                kafkaTemplate.send(topic, key, event);
 
         future.whenComplete((result, ex) -> {
             if (ex == null) {
-                log.info("결제 실패 이벤트 발행 성공: topic={}, partition={}, offset={}, orderId={}",
-                        PAYMENT_FAILED_TOPIC,
+                log.info("{} 이벤트 발행 성공: topic={}, partition={}, offset={}",
+                        eventName,
+                        topic,
                         result.getRecordMetadata().partition(),
-                        result.getRecordMetadata().offset(),
-                        event.orderId());
+                        result.getRecordMetadata().offset());
             } else {
-                log.error("결제 실패 이벤트 발행 실패: orderId={}, error={}",
-                        event.orderId(), ex.getMessage(), ex);
-                // Producer 재시도 실패 시 로그만 남김
-                // Consumer 측에서 DLQ 처리
+                log.error("{} 이벤트 발행 실패: topic={}, error={}",
+                        eventName, topic, ex.getMessage(), ex);
             }
         });
     }

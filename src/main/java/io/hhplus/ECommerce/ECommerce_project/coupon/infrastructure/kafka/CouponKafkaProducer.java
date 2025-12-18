@@ -96,4 +96,26 @@ public class CouponKafkaProducer {
             }
         });
     }
+
+    // ------------ 공동 전송 로직 -------------
+    /**
+     * 공통 전송 로직
+     */
+    private void send(String topic, String key, Object event, String eventName) {
+        CompletableFuture<SendResult<String, Object>> future =
+                kafkaTemplate.send(topic, key, event);
+
+        future.whenComplete((result, ex) -> {
+            if (ex == null) {
+                log.info("{} 이벤트 발행 성공: topic={}, partition={}, offset={}",
+                        eventName,
+                        topic,
+                        result.getRecordMetadata().partition(),
+                        result.getRecordMetadata().offset());
+            } else {
+                log.error("{} 이벤트 발행 실패: topic={}, error={}",
+                        eventName, topic, ex.getMessage(), ex);
+            }
+        });
+    }
 }
