@@ -4,7 +4,6 @@ import io.hhplus.ECommerce.ECommerce_project.product.domain.event.StockDecreased
 import io.hhplus.ECommerce.ECommerce_project.product.domain.event.StockIncreasedEvent;
 import io.hhplus.ECommerce.ECommerce_project.product.infrastructure.kafka.StockKafkaProducer;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.Map;
 public class StockService {
 
     private final RedisStockService redisStockService;
-    private final ApplicationEventPublisher applicationEventPublisher;
     private final StockKafkaProducer stockKafkaProducer;
 
     /**
