@@ -2,6 +2,7 @@ package io.hhplus.ECommerce.ECommerce_project.product.application.service;
 
 import io.hhplus.ECommerce.ECommerce_project.product.domain.event.StockDecreasedEvent;
 import io.hhplus.ECommerce.ECommerce_project.product.domain.event.StockIncreasedEvent;
+import io.hhplus.ECommerce.ECommerce_project.product.infrastructure.kafka.StockKafkaProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ public class StockService {
 
     private final RedisStockService redisStockService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final StockKafkaProducer stockKafkaProducer;
 
     /**
      * 재고 차감 (Redis) - 초고속 처리
@@ -24,8 +26,8 @@ public class StockService {
         // 1. Redis에서 즉시 재고 차감 (5-10ms)
         Long remaining = redisStockService.decreaseStock(productId, quantity);
 
-        // 2. DB 동기화 이벤트 발행 (비동기)
-        applicationEventPublisher.publishEvent(
+        // 2. Kafka로 DB 동기화 이벤트 발행 (비동기)
+        stockKafkaProducer.sendStockDecreased(
                 new StockDecreasedEvent(productId, quantity)
         );
     }
@@ -35,11 +37,11 @@ public class StockService {
      * CreateOrderFromProductUseCase.java 에서 사용
      */
     public void compensateStock(Long productId, Integer quantity) {
-        // Redis 재고 복구
+        // 1. Redis 재고 복구
         redisStockService.increaseStock(productId, quantity);
 
-        // DB 동기화 이벤트 발행
-        applicationEventPublisher.publishEvent(
+        // 2. Kafka로 DB 동기화 이벤트 발행
+        stockKafkaProducer.sendStockIncreased(
                 new StockIncreasedEvent(productId, quantity)
         );
     }
@@ -56,8 +58,8 @@ public class StockService {
             // Redis에서 즉시 재고 차감 (5-10ms)
             Long remaining = redisStockService.decreaseStock(productId, totalQuantity);
 
-            // DB 동기화 이벤트 발행 (비동기)
-            applicationEventPublisher.publishEvent(
+            // kafka로 DB 동기화 이벤트 발행 (비동기)
+            stockKafkaProducer.sendStockDecreased(
                     new StockDecreasedEvent(productId, totalQuantity)
             );
         }
@@ -76,7 +78,7 @@ public class StockService {
             redisStockService.increaseStock(productId, totalQuantity);
 
             // DB 동기화 이벤트 발행
-            applicationEventPublisher.publishEvent(
+            stockKafkaProducer.sendStockIncreased(
                     new StockIncreasedEvent(productId, totalQuantity)
             );
         }

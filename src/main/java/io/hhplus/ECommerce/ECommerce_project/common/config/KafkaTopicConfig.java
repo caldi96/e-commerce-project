@@ -82,12 +82,47 @@ public class KafkaTopicConfig {
     }
 
     /**
+     * 재고 증가 이벤트 토픽
+     * 재고가 증가하면 이 토픽으로 이벤트가 발행됩니다.
+     */
+    @Bean
+    public NewTopic stockIncreasedTopic() {
+        return TopicBuilder.name("stock-increased")
+                .partitions(DEFAULT_PARTITIONS)
+                .replicas(DEFAULT_REPLICAS)
+                .config("min.insync.replicas", MIN_IN_SYNC_REPLICAS)
+                .build();
+    }
+
+    /**
      * 재고 감소 이벤트 토픽
      * 재고가 감소하면 이 토픽으로 이벤트가 발행됩니다.
      */
     @Bean
     public NewTopic stockDecreasedTopic() {
         return TopicBuilder.name("stock-decreased")
+                .partitions(DEFAULT_PARTITIONS)
+                .replicas(DEFAULT_REPLICAS)
+                .config("min.insync.replicas", MIN_IN_SYNC_REPLICAS)
+                .build();
+    }
+
+    /**
+     * 재고 감소 이벤트 DLT
+     */
+    @Bean
+    public NewTopic stockDecreasedDltTopic() {
+        return TopicBuilder.name("stock-decreased.DLT")
+                .partitions(DEFAULT_PARTITIONS)
+                .replicas(DEFAULT_REPLICAS)
+                .config("min.insync.replicas", MIN_IN_SYNC_REPLICAS)
+                .build();
+    }
+
+    // stock-increased DLT
+    @Bean
+    public NewTopic stockIncreasedDltTopic() {
+        return TopicBuilder.name("stock-increased.DLT")
                 .partitions(DEFAULT_PARTITIONS)
                 .replicas(DEFAULT_REPLICAS)
                 .config("min.insync.replicas", MIN_IN_SYNC_REPLICAS)

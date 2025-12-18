@@ -5,7 +5,6 @@ import io.hhplus.ECommerce.ECommerce_project.payment.domain.event.PaymentFailedE
 import io.hhplus.ECommerce.ECommerce_project.payment.infrastructure.kafka.PaymentKafkaProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
