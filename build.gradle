@@ -62,7 +62,11 @@ dependencies {
 	// Jackson Hibernate Module (for Hibernate Lazy Loading Proxy serialization)
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate5-jakarta'
 
+	// Kafka
+	implementation 'org.springframework.kafka:spring-kafka'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

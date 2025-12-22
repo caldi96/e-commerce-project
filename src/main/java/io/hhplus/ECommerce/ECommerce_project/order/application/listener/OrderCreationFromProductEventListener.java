@@ -21,7 +21,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - 주문 생성 실패 시 DB 재고 + Redis 재고 복구 이벤트 발행
  */
 @Slf4j
-@Component
+//@Component // 스프링 이벤트를 kafka 이벤트로 변경
 @RequiredArgsConstructor
 public class OrderCreationFromProductEventListener {
 

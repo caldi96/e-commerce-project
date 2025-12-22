@@ -14,7 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - 주문 완료 트랜잭션 실패 시 재고 복구를 비동기로 처리
  */
 @Slf4j
-@Component
+//@Component // 스프링 이벤트에서 kafka 이벤트로 변경
 @RequiredArgsConstructor
 public class OrderCreationFromProductFailedEventListener {
 

@@ -46,7 +46,7 @@ import java.util.Map;
  * - 검증 실패 시 Redis 재고 복구 이벤트 발행
  */
 @Slf4j
-@Component
+//@Component // 스프링 이벤트에서 카프카 이벤트로 변경
 @RequiredArgsConstructor
 public class OrderFromCartValidationEventListener {
     private final UserDomainService userDomainService;

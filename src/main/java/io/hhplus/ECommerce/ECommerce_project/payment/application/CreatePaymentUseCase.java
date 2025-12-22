@@ -9,9 +9,9 @@ import io.hhplus.ECommerce.ECommerce_project.payment.domain.entity.Payment;
 import io.hhplus.ECommerce.ECommerce_project.payment.domain.event.PaymentCompletedEvent;
 import io.hhplus.ECommerce.ECommerce_project.payment.domain.event.PaymentFailedEvent;
 import io.hhplus.ECommerce.ECommerce_project.payment.infrastructure.PaymentRepository;
+import io.hhplus.ECommerce.ECommerce_project.payment.infrastructure.kafka.PaymentKafkaProducer;
 import io.hhplus.ECommerce.ECommerce_project.payment.presentation.response.CreatePaymentResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,7 @@ public class CreatePaymentUseCase {
     private final OrderDomainService orderDomainService;
     private final OrderFinderService orderFinderService;
     private final OrderItemFinderService orderItemFinderService;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final PaymentKafkaProducer paymentKafkaProducer;
 
     @Transactional
     public CreatePaymentResponse execute(CreatePaymentCommand command) {
@@ -80,7 +80,7 @@ public class CreatePaymentUseCase {
                             ))
                             .toList();
 
-            applicationEventPublisher.publishEvent(
+            paymentKafkaProducer.sendPaymentCompleted(
                     PaymentCompletedEvent.of(order.getId(), orderItemInfoes)
             );
 
@@ -97,7 +97,7 @@ public class CreatePaymentUseCase {
 //            compensationService.compensate(order);
 
             // Saga 패턴: 기존 동기 방식을 비동기 이벤트 발생으로 수정
-            applicationEventPublisher.publishEvent(
+            paymentKafkaProducer.sendPaymentFailed(
                     PaymentFailedEvent.of(
                             order.getId(),
                             order.getUser().getId(),

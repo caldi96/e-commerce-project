@@ -33,5 +33,26 @@ spring:
         max-idle: 10
         min-idle: 2
 
+  kafka:
+    bootstrap-servers: localhost:19093,localhost:19094,localhost:19095
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all  # 모든 복제본이 받을 때까지 대기 (안정성 최대)
+      retries: 3  # 실패 시 재시도 횟수
+      properties:
+        enable.idempotence: true  # 중복 방지 (정확히 한 번 전송)
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: ecommerce-consumer-group
+      auto-offset-reset: earliest  # 처음부터 읽기 (latest: 최신부터)
+#      enable-auto-commit: false  # 수동 커밋으로 메시지 처리 보장 (Factory에서 개별 설정)
+      properties:
+        spring.json.trusted.packages: "*"  # JSON 역직렬화 허용 패키지
+#    listener:
+#      ack-mode: manual  # 수동 acknowledge (메시지 처리 완료 후 커밋) (Factory에서 개별 설정)
+
 server:
   port: 8083

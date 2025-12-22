@@ -17,7 +17,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * - DB의 issuedQuantity를 증가 (집계 데이터 동기화)
  */
 @Slf4j
-@Component
+//@Component // 현재 스프링 이벤트가 아닌 kafka 이벤트에서 처리
 @RequiredArgsConstructor
 public class CouponQuantityIncreaseEventListener {
 

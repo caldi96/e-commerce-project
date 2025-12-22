@@ -4,11 +4,11 @@ import io.hhplus.ECommerce.ECommerce_project.cart.application.service.CartFinder
 import io.hhplus.ECommerce.ECommerce_project.cart.domain.entity.Cart;
 import io.hhplus.ECommerce.ECommerce_project.order.application.command.CreateOrderFromCartCommand;
 import io.hhplus.ECommerce.ECommerce_project.order.domain.event.OrderFromCartValidationRequestedEvent;
+import io.hhplus.ECommerce.ECommerce_project.order.infrastructure.kafka.OrderKafkaProducer;
 import io.hhplus.ECommerce.ECommerce_project.order.presentation.response.CreateOrderResponse;
 import io.hhplus.ECommerce.ECommerce_project.product.application.service.RedisStockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ import java.util.Map;
  * 장바구니 주문 생성 UseCase
  * - 장바구니 조회 및 상품별 수량 집계
  * - Redis 재고 차감 (동기, All or Nothing)
- * - 이후 처리는 비동기 이벤트로 진행
+ * - 이후 처리는 kafka 이벤트로 진행
  */
 @Slf4j
 @Service
@@ -29,7 +29,7 @@ public class CreateOrderFromCartUseCase {
 
     private final RedisStockService redisStockService;
     private final CartFinderService cartFinderService;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final OrderKafkaProducer orderKafkaProducer;
 
     public CreateOrderResponse execute(CreateOrderFromCartCommand command) {
 
@@ -76,8 +76,8 @@ public class CreateOrderFromCartUseCase {
             log.info("전체 상품 Redis 재고 차감 완료 - userId: {}, 성공수: {}",
                     command.userId(), successEntries.size());
 
-            // 3. 검증 및 계산 이벤트 발행 (비동기)
-            applicationEventPublisher.publishEvent(
+            // 3. Kafka로 검증 이벤트 발행 (비동기)
+            orderKafkaProducer.sendOrderFromCartValidationRequested(
                     OrderFromCartValidationRequestedEvent.of(command, sortedEntries)
             );
 

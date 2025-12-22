@@ -10,6 +10,8 @@ import io.hhplus.ECommerce.ECommerce_project.point.application.service.PointComp
 import io.hhplus.ECommerce.ECommerce_project.product.application.service.StockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -20,9 +22,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.List;
 
 /**
- * 결제 보상 이벤트 리스너
- * - 결제 실패 시 보상 트랜잭션을 비동기로 처리
- * - Saga 패턴의 보상 트랜잭션 구현
+ * 결제 보상 Kafka Consumer
+ * - Kafka에서 결제 실패 이벤트를 수신하여 보상 트랜잭션 처리
  */
 @Slf4j
 @Component
@@ -36,41 +37,39 @@ public class PaymentCompensationEventListener {
     private final PointCompensationService pointCompensationService;
 
     /**
-     * 결제 실패 이벤트 처리
+     * Kafka에서 결제 실패 이벤트 수신
      * - 재고, 쿠폰, 포인트를 순차적으로 복구
-     * - 각 보상 트랜잭션은 독립적으로 실행
      */
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @KafkaListener(
+            topics = "payment-failed",
+            groupId = "payment-compensation-group",
+            containerFactory = "manualCommitKafkaListenerContainerFactory" // 수동 커밋
+    )
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handlePaymentFailed(PaymentFailedEvent event) {
-        log.info("결제 실패 보상 트랜잭션 시작: orderId={}, userId={}, reason={}",
+    public void handlePaymentFailed(PaymentFailedEvent event, Acknowledgment ack) {
+        log.info("Kafka 결제 실패 이벤트 수신: orderId={}, userId={}, reason={}",
                 event.orderId(), event.userId(), event.failureReason());
 
-        try {
-            // 주문 조회
-            Orders order = orderFinderService.getOrder(event.orderId());
+        // 주문 조회
+        Orders order = orderFinderService.getOrder(event.orderId());
 
-            // 1. 재고 복구
-            compensateStock(order);
+        // 1. 재고 복구
+        compensateStock(order);
 
-            // 2. 쿠폰 복구
-            compensateCoupon(order);
+        // 2. 쿠폰 복구
+        compensateCoupon(order);
 
-            // 3. 포인트 복구
-            compensatePoint(order);
+        // 3. 포인트 복구
+        compensatePoint(order);
 
-            log.info("결제 실패 보상 트랜잭션 완료: orderId={}", event.orderId());
+        log.info("결제 실패 보상 트랜잭션 완료: orderId={}", event.orderId());
 
-        } catch (Exception e) {
-            log.error("결제 실패 보상 트랜잭션 실패: orderId={}, error={}",
-                    event.orderId(), e.getMessage(), e);
+        // 성공 시 수동 커밋
+        ack.acknowledge();
 
-            // TODO: 보상 실패 시 처리 로직
-            // - Dead Letter Queue에 저장
-            // - 관리자 알림 발송
-            // - 재시도 스케줄링
-        }
+        // 예외 발생 시 DefaultErrorHandler가 자동으로 재시도하고,
+        // 3회 재시도 후에도 실패하면 payment-failed.DLT로 전송됨
+
     }
 
     /**
