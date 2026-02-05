@@ -1,0 +1,424 @@
+================================================================================
+E-COMMERCE K6 LOAD TEST DOCUMENTATION - COMPLETE SUMMARY
+================================================================================
+
+PROJECT: Spring Boot E-Commerce REST API
+ANALYSIS DATE: 2025-12-23
+DOCUMENTATION VERSION: 1.0
+
+================================================================================
+FINDINGS SUMMARY
+================================================================================
+
+Total REST API Endpoints: 38
+Total Controllers: 8
+Authentication: None (Development Setup)
+Async Processing: Kafka (for Orders)
+Race Condition Handling: Redis (for Coupons)
+
+================================================================================
+CONTROLLER BREAKDOWN
+================================================================================
+
+1. CART CONTROLLER (4 endpoints)
+   - POST /api/carts - Create cart item
+   - GET /api/carts/{userId} - Get user's cart
+   - PATCH /api/carts/{cartId}/quantity - Update quantity
+   - DELETE /api/carts/{cartId} - Delete cart item
+
+2. PRODUCT CONTROLLER (11 endpoints)
+   - POST /api/products - Create product
+   - GET /api/products - List products (paginated)
+   - GET /api/products/{id} - Get product detail
+   - GET /api/products/top-rank - Get top ranked products
+   - PUT /api/products/{id} - Update product
+   - PATCH /api/products/{id}/price - Update price
+   - PATCH /api/products/{id}/stock/increase - Increase stock
+   - PATCH /api/products/{id}/stock/decrease - Decrease stock
+   - POST /api/products/{id}/activate - Activate product
+   - POST /api/products/{id}/deactivate - Deactivate product
+   - DELETE /api/products/{id} - Delete product
+
+3. CATEGORY CONTROLLER (5 endpoints)
+   - POST /api/categories - Create category
+   - GET /api/categories - List categories
+   - GET /api/categories/{id} - Get category
+   - PUT /api/categories/{id} - Update category
+   - DELETE /api/categories/{id} - Delete category
+
+4. ORDER CONTROLLER (5 endpoints)
+   - POST /api/orders/from-cart - Create order from cart
+   - POST /api/orders/from-product - Create order from product
+   - GET /api/orders - List orders (paginated)
+   - GET /api/orders/{orderId} - Get order detail
+   - POST /api/orders/{orderId}/cancel - Cancel order
+
+5. PAYMENT CONTROLLER (1 endpoint)
+   - POST /api/payments - Create payment
+
+6. POINT CONTROLLER (3 endpoints)
+   - POST /api/points/charge - Charge points
+   - GET /api/points/balance - Get point balance
+   - GET /api/points/history - Get point history
+
+7. COUPON CONTROLLER (7 endpoints)
+   - POST /api/coupons - Create coupon
+   - GET /api/coupons - List coupons
+   - GET /api/coupons/{id} - Get coupon detail
+   - PUT /api/coupons/{id} - Update coupon
+   - POST /api/coupons/issue - Issue coupon (first-come-first-served)
+   - PATCH /api/coupons/{id}/deactivate - Deactivate coupon
+   - PATCH /api/coupons/{id}/activate - Activate coupon
+
+8. KAFKA TEST CONTROLLER (2 endpoints)
+   - GET /api/test/kafka/send - Send test message
+   - GET /api/test/kafka/health - Check Kafka health
+
+================================================================================
+DOCUMENTATION FILES CREATED
+================================================================================
+
+1. README_K6_TESTING.md
+   Purpose: Master documentation with setup instructions
+   Size: ~400 lines
+   Contains:
+   - Overview of all created documents
+   - API summary table (38 endpoints)
+   - Infrastructure details
+   - Connection pool configuration
+   - Data type reference
+   - 5 test scenarios
+   - Execution instructions
+   - Critical dependencies
+   - Troubleshooting guide
+   - Security recommendations
+   Location: /Volumes/E 드라이브/study/ECommerce-project/README_K6_TESTING.md
+
+2. API_ENDPOINTS_FOR_K6_TESTING.md
+   Purpose: Comprehensive API reference
+   Size: ~1000 lines
+   Contains:
+   - Complete endpoint specifications with examples
+   - Request/response structures
+   - Validation rules
+   - HTTP status codes
+   - Authentication status
+   - Field constraints
+   - Data dependencies
+   - Performance notes
+   Location: /Volumes/E 드라이브/study/ECommerce-project/API_ENDPOINTS_FOR_K6_TESTING.md
+
+3. API_QUICK_REFERENCE.md
+   Purpose: Quick lookup reference
+   Size: ~500 lines
+   Contains:
+   - Endpoint summary table
+   - Data flow diagrams
+   - Quick test scenarios (5 examples)
+   - Field type reference
+   - HTTP headers
+   - Error formats
+   - K6 script patterns
+   - Curl command examples
+   Location: /Volumes/E 드라이브/study/ECommerce-project/API_QUICK_REFERENCE.md
+
+4. K6_TEST_SCRIPT_EXAMPLES.js
+   Purpose: Working K6 test script examples
+   Size: ~400 lines
+   Contains:
+   - 7 test functions with explanations
+   - Setup/teardown functions
+   - Stress test configuration
+   - Smoke test configuration
+   - Proper assertions and validations
+   Scenarios:
+   1. Product Browsing (Read-Heavy)
+   2. Shopping Cart Operations
+   3. Order Creation Flow
+   4. Payment Processing
+   5. Coupon First-Come-First-Served (Race Condition)
+   6. Loyalty Points
+   7. Complete User Journey
+   Location: /Volumes/E 드라이브/study/ECommerce-project/K6_TEST_SCRIPT_EXAMPLES.js
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+REQUEST/RESPONSE STRUCTURES:
+- All requests: JSON (Content-Type: application/json)
+- All responses: JSON
+- Standard HTTP status codes (200, 201, 204, 400, 404, 409, 500)
+
+VALIDATION RULES:
+- NumericIDs: Long, Min 1
+- Monetary Values: BigDecimal, Min 0
+- Quantities: Integer, Min 1
+- All major fields have @NotNull or @NotBlank annotations
+
+DATA DEPENDENCIES:
+- Categories can be created independently
+- Products require valid categoryId (or null)
+- Cart items require userId and productId
+- Orders require userId and productId/cartIds
+- Payments require orderId
+- Coupons require comprehensive setup (dates, quantities, limits)
+
+ASYNC PROCESSING:
+- Orders: Created with PENDING status, processed asynchronously via Kafka
+- Coupons: Issue operation uses Redis for atomic distribution, DB updated async
+- Tests should account for these delays
+
+AUTHENTICATION:
+- NO authentication required (all endpoints public)
+- NO @PreAuthorize, @Secured, or JWT annotations
+- Development setup without security
+
+INFRASTRUCTURE:
+- Application: localhost:8083
+- MySQL: localhost:3307
+- Redis: localhost:6380
+- Kafka: localhost:19093, 19094, 19095
+- Consumer Group: ecommerce-consumer-group
+
+CONNECTION POOLS:
+- MySQL: max-active=10, max-idle=10
+- Redis: max-active=10, max-idle=10, min-idle=2
+- Bottleneck at high concurrency (100+ VUs)
+
+================================================================================
+TEST SCENARIOS PROVIDED
+================================================================================
+
+Scenario 1: Product Browsing (Read-Heavy)
+- Tests product list, single product, top-ranked products
+- Best for: Simulating typical customer browsing
+
+Scenario 2: Shopping Cart Operations
+- Tests add to cart, update quantity, get cart, delete
+- Best for: Testing cart management concurrency
+
+Scenario 3: Order Processing
+- Tests both order types, list, detail, cancel
+- Best for: Testing async Kafka processing
+
+Scenario 4: Coupon Distribution (Race Condition)
+- Tests concurrent coupon issuance
+- Best for: Testing Redis atomicity under high concurrency
+
+Scenario 5: Complete User Journey
+- Tests full e-commerce flow from browse to payment
+- Best for: End-to-end validation
+
+Additional Configurations:
+- Stress Test: Gradual ramp-up to 200 VUs
+- Smoke Test: Quick validation with 1 VU for 10s
+
+================================================================================
+SPECIAL FEATURES TESTED
+================================================================================
+
+1. PAGINATION
+   - Products: page, size parameters
+   - Orders: page, size parameters
+   - Points: page, size parameters
+   Tests should validate pagination boundaries
+
+2. FILTERING & SORTING
+   - Products: categoryId, sortType (LATEST, BEST_SELLER, MOST_VIEWED, etc.)
+   Tests should exercise different sort combinations
+
+3. FIRST-COME-FIRST-SERVED (Redis-backed)
+   - Coupon issuance uses Redis for atomicity
+   - Tests with high concurrency will trigger rate limiting (409 Conflict)
+   - Expected behavior in stress tests
+
+4. ASYNCHRONOUS PROCESSING (Kafka)
+   - Order creation returns immediately with PENDING status
+   - Actual order processing happens asynchronously
+   - Tests should use sleep(2) after order creation
+
+5. DATA RELATIONSHIPS
+   - Products -> Categories
+   - Orders -> Products, Coupons, Points
+   - Payments -> Orders
+   Tests must respect these dependencies
+
+================================================================================
+CONNECTION POOL INFORMATION
+================================================================================
+
+MySQL Configuration:
+- URL: jdbc:mysql://localhost:3307
+- Max Active: 10
+- Max Idle: 10
+- Driver: MySQL 8 Dialect
+- Auto Offset Reset: latest (Kafka)
+
+Redis Configuration:
+- Host: localhost
+- Port: 6380
+- Max Active: 10
+- Max Idle: 10
+- Min Idle: 2
+
+Kafka Configuration:
+- Bootstrap Servers: localhost:19093, 19094, 19095
+- Consumer Group: ecommerce-consumer-group
+- Serialization: JSON
+- Idempotence: Enabled
+
+================================================================================
+CRITICAL CONSIDERATIONS FOR K6 TESTING
+================================================================================
+
+1. TEST DATA PREPARATION
+   - Create at least one product before running tests
+   - Create test coupons for coupon tests
+   - Tests generate unique userIds per VU (__VU + offset)
+
+2. ASYNC HANDLING
+   - Orders return PENDING immediately
+   - Use sleep(2) after order creation
+   - Account for eventual consistency in assertions
+
+3. RACE CONDITION TESTING
+   - Coupon issuance is rate-limited via Redis
+   - High concurrency tests should expect 409 Conflict responses
+   - This validates Redis atomicity
+
+4. CONNECTION POOL LIMITS
+   - MySQL/Redis pools max out at 10 concurrent connections
+   - Tests with 100+ VUs may experience bottlenecks
+   - Monitor pool saturation in test results
+
+5. DATA ISOLATION
+   - Each VU gets unique userId (__VU + offset)
+   - Prevents conflicts in concurrent scenarios
+   - Enables reproducible results
+
+6. VALIDATION LOGIC
+   - All endpoints validate request data
+   - 400 errors expected for invalid input
+   - Include validation error tests in suite
+
+================================================================================
+FILE STRUCTURE REFERENCE
+================================================================================
+
+Project Root: /Volumes/E 드라이브/study/ECommerce-project/
+
+K6 Testing Documentation:
+- /README_K6_TESTING.md (Master guide)
+- /API_ENDPOINTS_FOR_K6_TESTING.md (Detailed reference)
+- /API_QUICK_REFERENCE.md (Quick lookup)
+- /K6_TEST_SCRIPT_EXAMPLES.js (Working examples)
+- /DOCUMENTATION_SUMMARY.txt (This file)
+
+Source Code:
+- /src/main/java/.../cart/presentation/CartController.java
+- /src/main/java/.../product/presentation/ProductController.java
+- /src/main/java/.../order/presentation/OrderController.java
+- /src/main/java/.../category/presentation/CategoryController.java
+- /src/main/java/.../payment/presentation/PaymentController.java
+- /src/main/java/.../point/presentation/PointController.java
+- /src/main/java/.../coupon/presentation/CouponController.java
+- /src/main/java/.../common/test/KafkaTestController.java
+
+Configuration:
+- /src/main/resources/application.yml
+
+================================================================================
+QUICK START COMMANDS
+================================================================================
+
+Verify API is running:
+curl -X GET http://localhost:8083/api/test/kafka/health
+
+Run K6 tests:
+k6 run K6_TEST_SCRIPT_EXAMPLES.js
+
+Run with custom VUs:
+k6 run K6_TEST_SCRIPT_EXAMPLES.js --vus 50 --duration 1m
+
+Export results to JSON:
+k6 run K6_TEST_SCRIPT_EXAMPLES.js --out json=results.json
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+1. START WITH SMOKE TESTS
+   - Validate API connectivity
+   - Verify test data setup
+   - Check authentication (not required)
+
+2. RUN BASIC LOAD TESTS
+   - Gradually increase VUs (10, 20, 30)
+   - Monitor MySQL/Redis pool saturation
+   - Identify performance bottlenecks
+
+3. EXECUTE STRESS TESTS
+   - Ramp up to expected production load
+   - Test beyond expected load (2-3x)
+   - Document breaking points
+
+4. RACE CONDITION TESTING
+   - Focus on coupon distribution
+   - Aim for high concurrency (100+ simultaneous users)
+   - Validate Redis atomic operations
+
+5. END-TO-END FLOWS
+   - Test complete user journeys
+   - Verify async order processing
+   - Check error handling
+
+6. MONITOR INFRASTRUCTURE
+   - Track MySQL/Redis pool utilization
+   - Monitor Kafka consumer lag
+   - Check memory/CPU usage
+   - Identify saturation points
+
+================================================================================
+SECURITY NOTES
+================================================================================
+
+CURRENT STATE:
+- No authentication required
+- All endpoints publicly accessible
+- No rate limiting implemented
+- No HTTPS enforcement
+
+RECOMMENDATIONS FOR PRODUCTION:
+- Implement JWT or OAuth2 authentication
+- Add @PreAuthorize for role-based access control
+- Secure payment endpoints with additional verification
+- Implement API rate limiting
+- Use HTTPS for all communications
+- Add request signing/verification
+
+================================================================================
+CONCLUSION
+================================================================================
+
+This comprehensive documentation provides:
+
+1. Complete REST API inventory (38 endpoints)
+2. Detailed endpoint specifications with examples
+3. Quick reference guides for developers
+4. Working K6 test script examples (7 scenarios)
+5. Setup, configuration, and infrastructure details
+6. Performance considerations and bottlenecks
+7. Testing best practices and recommendations
+
+All files are ready for immediate use in creating K6 load test scripts.
+
+For detailed information, refer to:
+- README_K6_TESTING.md for setup and overview
+- API_ENDPOINTS_FOR_K6_TESTING.md for detailed specifications
+- API_QUICK_REFERENCE.md for quick lookups
+- K6_TEST_SCRIPT_EXAMPLES.js for working code
+
+================================================================================
+END OF DOCUMENTATION SUMMARY
+================================================================================
