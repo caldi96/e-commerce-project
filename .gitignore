@@ -1,4 +1,4 @@
-HELP.md
+k6/docs/HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -49,9 +49,9 @@ application-secret.properties
 
 ### jmeter test ###
 /report_no_cache
-ProductList_CacheTest.jmx
-jmeter.log
-results_no_cache.jtl
+k6/docs/ProductList_CacheTest.jmx
+k6/docs/jmeter.log
+k6/docs/results_no_cache.jtl
 
 # macOS
 .DS_Store
@@ -59,4 +59,4 @@ results_no_cache.jtl
 .LSOverride
 
 # temp
-PROJECT_STRUCTURE_ANALYSIS.md
+/k6
