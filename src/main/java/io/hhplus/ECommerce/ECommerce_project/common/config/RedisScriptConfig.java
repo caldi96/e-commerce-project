@@ -37,14 +37,20 @@ public class RedisScriptConfig {
                 if score then
                     return -1
                 end
-                
-                -- 2. Sorted Set에 추가 (timestamp를 score로 사용)
+
+                -- 2. 수량 체크: ZADD 전에 먼저 확인 (동시성 문제 해결)
+                local currentCount = redis.call('ZCARD', KEYS[1])
+                if currentCount >= tonumber(ARGV[3]) then
+                    return -2
+                end
+
+                -- 3. Sorted Set에 추가 (timestamp를 score로 사용)
                 redis.call('ZADD', KEYS[1], ARGV[2], ARGV[1])
-                
-                -- 3. 본인의 순위 확인 (0부터 시작, 0 = 1등)
+
+                -- 4. 본인의 순위 확인 (0부터 시작, 0 = 1등)
                 local rank = redis.call('ZRANK', KEYS[1], ARGV[1])
-                
-                -- 4. 순위가 최대 수량 이내인지 검증
+
+                -- 5. 순위가 최대 수량 이내인지 검증 (이중 체크)
                 if rank < tonumber(ARGV[3]) then
                     -- TTL 설정 (처음 설정되지 않은 경우에만)
                     local ttl = redis.call('TTL', KEYS[1])
