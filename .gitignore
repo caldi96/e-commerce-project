@@ -60,3 +60,5 @@ k6/docs/results_no_cache.jtl
 
 # temp
 /k6
+/old_docs
+/old_unit_tests

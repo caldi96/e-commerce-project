@@ -1,5 +1,0 @@
-spring.application.name=ECommerce-project
-
-# Disable JPA auto-configuration for in-memory repository testing
-spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,\
-  org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
