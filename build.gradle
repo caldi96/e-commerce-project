@@ -19,55 +19,44 @@ repositories {
 }
 
 dependencies {
-//	implementation 'org.springframework.boot:spring-boot-starter'
+	// Web
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+	// Persistence
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-
-	// 인메모리 방식에서 @Transactional 사용할때 추가
-	implementation 'org.springframework:spring-tx'
-
-	// MySQL Driver
+	implementation 'org.flywaydb:flyway-mysql'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-	testCompileOnly 'org.projectlombok:lombok'
-	testAnnotationProcessor 'org.projectlombok:lombok'
-
-	// H2 Database for Testing
-	testImplementation 'com.h2database:h2'
-
-	// Spring Retry for optimistic locking
-	implementation 'org.springframework.retry:spring-retry'
-	implementation 'org.springframework:spring-aspects'
-
-	// 기존 MySQL 드라이버, JPA 등은 그대로
-	// Flyway 마이그레이션 적용 -> 스키마 관리
-	// Flyway는 기본적으로 db/migration 폴더를 탐색
-	implementation 'org.flywaydb:flyway-mysql'
-
-	// Redis & Redisson 추가
+	// Redis & Distributed Lock
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.redisson:redisson-spring-boot-starter:3.24.3'
 
-	// Spring AOP for custom annotations
-	implementation 'org.springframework.boot:spring-boot-starter-aop'
-
-	// Spring Cache & Caffeine for local caching
+	// Cache (Local - Caffeine)
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 
-	// Jackson Hibernate Module (for Hibernate Lazy Loading Proxy serialization)
-	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate5-jakarta'
+	// AOP & Retry
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+	implementation 'org.springframework.retry:spring-retry'
 
-	// Kafka
+	// Messaging
 	implementation 'org.springframework.kafka:spring-kafka'
 
+	// Jackson - Hibernate Lazy Loading Proxy support (Spring Boot 3.x / Hibernate 6)
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
+
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
+	testImplementation 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {
