@@ -59,7 +59,7 @@
  - 인기 상품의 경우 DB 접근 부하로 응답 속도 저하
 
  **[해결 방안]**
- - Redis Sorted Set + Lua Script 기반 원자적 재고 차감
+ - Redis String + Lua Script 기반 원자적 재고 차감
  - Redis 차감 성공 후 즉시 응답, DB 쓰기는 Kafka 비동기 처리
  - Saga 패턴 적용으로 실패 시 보상 트랜잭션 실행
 
