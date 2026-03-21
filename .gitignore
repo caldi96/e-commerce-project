@@ -63,6 +63,5 @@ k6/docs/results_no_cache.jtl
 /old_docs
 /old_unit_tests
 
-# Kafka Failed Message Files (exclude from git)
-src/main/java/io/hhplus/ECommerce/ECommerce_project/common/kafka/entity/
-src/main/java/io/hhplus/ECommerce/ECommerce_project/common/kafka/enums/
+/java/io/hhplus/ECommerce/ECommerce_project/common/kafka/entity/
+/java/io/hhplus/ECommerce/ECommerce_project/common/kafka/enums/

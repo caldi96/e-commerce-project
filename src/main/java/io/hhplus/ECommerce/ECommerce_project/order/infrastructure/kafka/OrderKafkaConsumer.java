@@ -33,6 +33,7 @@ import io.hhplus.ECommerce.ECommerce_project.user.domain.entity.User;
 import io.hhplus.ECommerce.ECommerce_project.user.domain.service.UserDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -69,6 +71,9 @@ public class OrderKafkaConsumer {
 
     // 상품 재고 감소에 쓰이는 Service
     private final StockDeductionService stockDeductionService;
+
+    // 멱등성 보장을 위한 RedisTemplate
+    private final RedisTemplate<String, String> redisTemplate;
 
     // ------------ 개별 상품 주문 -------------
     /**
@@ -172,8 +177,23 @@ public class OrderKafkaConsumer {
         log.warn("검증 실패 재고 복구 시작 - productId: {}", event.productId());
 
         try {
-            redisStockService.increaseStock(event.productId(), event.quantity());
-            log.info("Redis 재고 복구 완료");
+            // 멱등성 키로 중복 처리 방지
+            String idempotencyKey = String.format(
+                    "validation-failed-recovery:%d:%d:%s",
+                    event.productId(),
+                    event.quantity(),
+                    event.failureReason().hashCode()
+            );
+
+            Boolean isFirstAttempt = redisTemplate.opsForValue()
+                    .setIfAbsent(idempotencyKey, "1", 10, TimeUnit.MINUTES);
+
+            if (Boolean.TRUE.equals(isFirstAttempt)) {
+                redisStockService.increaseStock(event.productId(), event.quantity());
+                log.info("Redis 재고 복구 완료");
+            } else {
+                log.warn("이미 처리된 재고 복구 요청 - productId: {}", event.productId());
+            }
 
             acknowledgment.acknowledge();
 
@@ -195,8 +215,23 @@ public class OrderKafkaConsumer {
         log.warn("재고 차감 실패 Redis 복구 시작 - productId: {}", event.productId());
 
         try {
-            redisStockService.increaseStock(event.productId(), event.quantity());
-            log.info("Redis 재고 복구 완료");
+            // 멱등성 키로 중복 처리 방지
+            String idempotencyKey = String.format(
+                    "stock-deduction-failed-recovery:%d:%d:%s",
+                    event.productId(),
+                    event.quantity(),
+                    event.failureReason().hashCode()
+            );
+
+            Boolean isFirstAttempt = redisTemplate.opsForValue()
+                    .setIfAbsent(idempotencyKey, "1", 10, TimeUnit.MINUTES);
+
+            if (Boolean.TRUE.equals(isFirstAttempt)) {
+                redisStockService.increaseStock(event.productId(), event.quantity());
+                log.info("Redis 재고 복구 완료");
+            } else {
+                log.warn("이미 처리된 재고 복구 요청 - productId: {}", event.productId());
+            }
 
             acknowledgment.acknowledge();
 
