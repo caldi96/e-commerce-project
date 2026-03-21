@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
-import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule;
+import com.fasterxml.jackson.datatype.hibernate6.Hibernate6Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
@@ -44,8 +44,8 @@ public class RedisCacheConfig {
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);  // ISO-8601 형식으로 직렬화
 
         // Hibernate Lazy Loading 프록시 객체 직렬화 지원
-        Hibernate5JakartaModule hibernateModule = new Hibernate5JakartaModule();
-        hibernateModule.configure(Hibernate5JakartaModule.Feature.FORCE_LAZY_LOADING, false);  // Lazy 로딩 강제 실행 안함
+        Hibernate6Module hibernateModule = new Hibernate6Module();
+        hibernateModule.configure(Hibernate6Module.Feature.FORCE_LAZY_LOADING, false);  // Lazy 로딩 강제 실행 안함
         objectMapper.registerModule(hibernateModule);
 
         // 역직렬화 설정: 알 수 없는 속성 무시 (Lombok boolean getter 문제 해결)
